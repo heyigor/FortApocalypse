@@ -13,14 +13,14 @@ This is mainly being released for historical reasons. This requires a copy of Sy
 	fnt1.s		Fort font 1. Alphabet.
 	fnt2.s		Fort font 2. Graphics.
 	fort.s		Main
-	fort1.s
-	fort2.s
-	fort3.s
-	fort4.s
-	fort5.s
-	fort6.s
+	fort1.s		Game logic, setup
+	fort2.s		Movement for pods, missiles, tanks, hyper chambers
+	fort3.s		Chopper logic, robot brains
+	fort4.s		Sprite logic, read joystick, draw map
+	fort5.s		Sound generation, sprite updates
+	fort6.s		Data, shapes, display Lists
 	fort7.s		Variables
-	fort8.s
+	fort8.s		Display list for navitron
 
 ###Level map format is:
 	Bytes	
