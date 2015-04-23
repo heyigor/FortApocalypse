@@ -1,0 +1,1048 @@
+
+00010 *
+00020 * FILE: FORT3.S
+00030 *
+00040 * MAIN INTERUPT DRIVER
+00050 *        PART (I)
+00060 * UPDATE.CHOPPER
+00070 * UPDATE.ROBOT.CHOPPER
+00080 * UPDATE.ROCKETS
+00090 * DO.ROBOT CHOPPER
+00100 * DO.CHOPPER
+00110 * ROBOT.BRAINS
+00120 *
+00130 VERTBLKD SEI
+00140          PHP
+00150          CLD
+00160          LDA #0
+00170          STA ATTRACT
+00180          LDA M2PL
+00190          ORA M3PL
+00200          AND #%00000011
+00210          ORA P0PL
+00220          ORA P1PL
+00230          ASL
+00240          ASL
+00250          ASL
+00260          ASL
+00270          ORA P0PF
+00280          ORA P1PF
+00290 ;        AND #%00000010
+00300          STA CHOPPER.COL
+00310          LDA M0PL
+00320          ORA M1PL
+00330          AND #%00001100
+00340          ORA P2PL
+00350          ORA P2PF
+00360          ORA P3PL
+00370          ORA P3PF
+00380          STA ROBOT.COL
+00390          STA HITCLR
+00400 *
+00410          JSR DO.NUMBERS
+00420          JSR DRAW.MAP
+00430          JSR UPDATE.CHOPPER
+00440          JSR UPDATE.ROBOT.CHOPPER
+00450          JSR READ.TRIG
+00460          JSR DO.EXP
+00470 *
+00480          LDA MODE
+00490          CMP #GO.MODE
+00500          BNE .1
+00510 *
+00520          JSR DO.ROBOT.CHOPPER
+00530          JSR UPDATE.ROCKETS
+00540          JSR DO.LASER.1
+00550          JSR DO.LASER.2
+00560          JSR DO.BLOCKS
+00570          JSR DO.ELEVATOR
+00580          JSR DO.CHOPPER
+00590          JSR ROBOT.BRAINS
+00600          JSR READ.STICK
+00610 *
+00620 .1
+00630 *
+00640 ;        .EQ $7000
+00650 ;        LDA CHOP.X
+00660 ;        STA P
+00670 ;        LDA CHOP.Y
+00680 ;        STA P+1
+00690 ;        LDA CHOPPER.X
+00700 ;        STA P+2
+00710 ;        LDA CHOPPER.Y
+00720 ;        STA P+3
+00730 ;        LDA SX
+00740 ;        STA P+4
+00750 ;        LDA SY
+00760 ;        STA P+5
+00770 ;        LDA SX.F
+00780 ;        STA P+6
+00790 ;        LDA SY.F
+00800 ;        STA P+7
+00810          PLP
+00820          CLI
+00830          JMP VVBLKD.RET
+00840 *
+00850 ROBOT.BRAINS
+00860          LDA R.STATUS
+00870          CMP #OFF
+00880          BEQ .1
+00890          CMP #CRASH
+00900          BEQ .2
+00910          LDA FRAME
+00920          AND ROBOT.SPD
+00930          BEQ R.START
+00940          RTS
+00950 *
+00960          LDA TIM7.VAL
+00970          BEQ .0
+00980 .1       DEC TIM7.VAL
+00990          BNE .2
+01000 .0       LDA #$88
+01010          STA PCOLR2
+01020          STA PCOLR3
+01030          LDA #8
+01040          STA ROBOT.ANGLE
+01050          LDA RANDOM
+01060          AND #7
+01070          LDX LEVEL
+01080          DEX         X=1?
+01090          BNE .3
+01100          CLC
+01110          ADC #8
+01120 .3       TAX
+01130          LDA ROB.X,X
+01140          STA R.X
+01150          LDA ROB.Y,X
+01160          STA R.Y
+01170          LDA R.X
+01180          SEC
+01190          SBC CHOP.X
+01200          BPL .4
+01210          EOR #-2
+01220 .4       CMP #34
+01230          BGE .6
+01240          LDA R.Y
+01250          SEC
+01260          SBC CHOP.Y
+01270          BPL .5
+01280          EOR #-2
+01290 .5       CMP #8
+01300          BLT .2
+01310 .6       LDA #FLY
+01320          STA R.STATUS
+01330          LDX #0
+01340          STX R.FX
+01350          STX R.FY
+01360          STX TIM7.VAL
+01370          INX         X=1
+01380          STX TIM8.VAL
+01390          JMP POS.ROBOT
+01400 .2       RTS
+01410 *
+01420 *    0001020304050607
+01430 ROB.X
+01440  .HS 84C349C349848484
+01450  .HS D7D7D7D6D6D63333
+01460 ROB.Y
+01470  .HS 0016162121000000
+01480  .HS 1212120606060606
+01490 *
+01500 R.START  LDA ROBOT.ANGLE
+01510          AND #1
+01520          STA TEMP4.I
+01530          LDA ROBOT.ANGLE
+01540          AND #$FE
+01550          STA ROBOT.ANGLE
+01560 *
+01570          JSR POS.ROBOT
+01580 R.F
+01590          DEC TIM8.VAL
+01600          BNE .10
+01610          LDA #5
+01620          STA TIM8.VAL
+01630          LDA ROBOT.STATUS
+01640          CMP #ON
+01650          BNE .10
+01660          LDA ROCKET.STATUS+2
+01670 ;        CMP #0
+01680          BNE .10
+01690 .2       LDA ROBOT.ANGLE
+01700          AND #%00011110
+01710          LSR
+01720          CMP #4
+01730          BLT .60
+01740          CMP #6
+01750          BGE .70
+01760          LDA #3
+01770          BNE .60     FORCED
+01780 .70      SEC
+01790          SBC #2
+01800 .60      CMP #6
+01810          BLT .4
+01820          LDA #5
+01830 .4       CMP #0
+01840          BNE .5
+01850          LDA #1
+01860 .5       STA ROCKET.STATUS+2
+01870          LDA ROBOT.X
+01880          AND #3
+01890          CLC
+01900          ADC ROBOT.X
+01910          ADC #8
+01920          STA ROCKET.X+2
+01930          LDA ROBOT.Y
+01940          CLC
+01950          ADC #8
+01960          STA ROCKET.Y+2
+01970          LDA #$3F
+01980          STA S2.VAL
+01990 .10
+02000 *
+02010 R.B
+02020          LDA R.X
+02030          LDX #215
+02040          CMP #216
+02050          BEQ .90
+02060          LDX #49
+02070          CMP #48
+02080          BNE .0
+02090 .90
+02100          LDA FRAME
+02110          AND #3
+02120          BNE .94
+02130          LDA ROBOT.ANGLE
+02140          CMP #4
+02150          BLT .95
+02160          CMP #14
+02170          BLT .94
+02180 .95      CMP #8
+02190          BGE .34
+02200          INC ROBOT.ANGLE
+02210          INC ROBOT.ANGLE
+02220          BNE .94     FORCED
+02230 .34      DEC ROBOT.ANGLE
+02240          DEC ROBOT.ANGLE
+02250 .94      LDA ROBOT.STATUS
+02260          CMP #OFF
+02270          BNE .2
+02280          STX R.X
+02290          JMP .2
+02300 *
+02310 .0       LDA CHOP.X
+02320          SEC
+02330          SBC R.X
+02340          BEQ .2
+02350          BPL .1
+02360          JSR R.LEFT
+02370          JMP .2
+02380 .1       JSR R.RIGHT
+02390 *
+02400 .2       LDA CHOP.Y
+02410          SEC
+02420          SBC R.Y
+02430          BEQ .4
+02440          BPL .3
+02450          JSR R.UP
+02460          JMP .4
+02470 .3       JSR R.DOWN
+02480 *
+02490 .4
+02500          JSR POS.ROBOT
+02510 R.END
+02520          LDA ROBOT.ANGLE
+02530          BPL .1
+02540          LDA #0
+02550          STA ROBOT.ANGLE
+02560 .1       CMP #18
+02570          BLT .2
+02580          LDA #16
+02590          STA ROBOT.ANGLE
+02600 .2       LDA ROBOT.ANGLE
+02610          ORA TEMP4.I
+02620          STA ROBOT.ANGLE
+02630          LDA R.FX
+02640          AND #3
+02650          STA R.FX
+02660          LDA R.FY
+02670          AND #7
+02680          STA R.FY
+02690          RTS
+02700 *
+02710 R.LEFT
+02720          LDA R.X
+02730          STA TEMP1.I
+02740          LDA R.Y
+02750          STA TEMP2.I
+02760          JSR CHECK.CHR.I
+02770          BCS .2
+02780          DEC TEMP1.I
+02790          JSR CHECK.CHR.I
+02800          BCS .2
+02810          DEC TEMP1.I
+02820          JSR CHECK.CHR.I
+02830          BCS .2
+02840          DEC R.FX
+02850          LDA R.FX
+02860          CMP #-1
+02870          BNE .1
+02880          DEC R.X
+02890 .1       LDA FRAME
+02900          AND #3
+02910          BNE .2
+02920          DEC ROBOT.ANGLE
+02930          DEC ROBOT.ANGLE
+02940 .2       RTS
+02950 *
+02960 R.RIGHT
+02970          LDA R.X
+02980          STA TEMP1.I
+02990          LDA R.Y
+03000          STA TEMP2.I
+03010          JSR CHECK.CHR.I
+03020          BCS .2
+03030          INC TEMP1.I
+03040          JSR CHECK.CHR.I
+03050          BCS .2
+03060          INC TEMP1.I
+03070          JSR CHECK.CHR.I
+03080          BCS .2
+03090          INC R.FX
+03100          LDA R.FX
+03110          CMP #4
+03120          BNE .1
+03130          INC R.X
+03140 .1       LDA FRAME
+03150          AND #3
+03160          BNE .2
+03170          INC ROBOT.ANGLE
+03180          INC ROBOT.ANGLE
+03190 .2       RTS
+03200 *
+03210 R.DOWN
+03220          LDA R.X
+03230          STA TEMP1.I
+03240          LDA R.Y
+03250          STA TEMP2.I
+03260          JSR CHECK.CHR.I
+03270          BCS .2
+03280          INC TEMP2.I
+03290          JSR CHECK.CHR.I
+03300          BCS .2
+03310          INC TEMP2.I
+03320          JSR CHECK.CHR.I
+03330          BCS .2
+03340          INC R.FY
+03350          LDA R.FY
+03360          CMP #8
+03370          BNE .1
+03380          INC R.Y
+03390 .1
+03400 .2       RTS
+03410 *
+03420 R.UP
+03430          LDA R.X
+03440          STA TEMP1.I
+03450          LDA R.Y
+03460          CMP #3
+03470          BLT .0
+03480          STA TEMP2.I
+03490          JSR CHECK.CHR.I
+03500          BCS .1
+03510          DEC TEMP2.I
+03520          JSR CHECK.CHR.I
+03530          BCS .1
+03540          DEC TEMP2.I
+03550          JSR CHECK.CHR.I
+03560          BCS .1
+03570          DEC TEMP2.I
+03580          JSR CHECK.CHR.I
+03590          BCS .1
+03600 .0       DEC R.FY
+03610          LDA R.FY
+03620          CMP #-1
+03630          BNE .1
+03640          DEC R.Y
+03650 .1       RTS
+03660 *
+03670 CHECK.CHR.I
+03680          JSR COMPUTE.MAP.ADR.I
+03690          LDY #0
+03700          LDA (ADR1.I),Y
+03710          AND #$7F
+03720          LDY #0
+03730          STY ADR2.I+1
+03740          ASL
+03750          ROL ADR2.I+1
+03760          ASL
+03770          ROL ADR2.I+1
+03780          ASL
+03790          ROL ADR2.I+1
+03800          CLC
+03810          ADC #CHR.SET2
+03820          STA ADR2.I
+03830          LDA /CHR.SET2
+03840          ADC ADR2.I+1
+03850          STA ADR2.I+1
+03860          LDY #7
+03870 .1       LDA (ADR2.I),Y
+03880          BNE .2
+03890          DEY
+03900          BPL .1
+03910          CLC
+03920          RTS
+03930 .2       SEC
+03940          RTS
+03950 *
+03960 DO.CHOPPER
+03970          LDA CHOPPER.STATUS
+03980          CMP #OFF
+03990          BNE .2
+04000 .1       RTS
+04010 *
+04020 .20      JMP .4
+04030 *
+04040 .2       CMP #CRASH
+04050          BEQ .1
+04060          CMP #LAND
+04070          BEQ .3
+04080          CMP #PICKUP
+04090          BEQ .3
+04100          LDA FRAME
+04110          AND GRAV.SKL
+04120          BNE .3
+04130          INC CHOPPER.Y
+04140 *
+04150 .3       LDA CHOPPER.COL
+04160          BEQ .12
+04170          CMP #4
+04180          BEQ .20     LASER
+04190          CMP #8
+04200          BNE .6      HYPER
+04210 *
+04220 ;        LDA RANDOM
+04230 ;        CMP #26
+04240 ;        BLT .20
+04250          LDA LEVEL
+04260 ;        CMP #0
+04270          BNE .20
+04280 ;        LDA #0
+04290          STA CHOPPER.COL
+04300          LDA #HYPERSPACE.MODE
+04310          STA MODE
+04320          LDA #1
+04330          STA S3.VAL
+04340          STA S5.VAL
+04350 .12      LDX #FLY
+04360          BNE .5      FORCED
+04370 *
+04380 .6       LDA CHOP.X
+04390          STA TEMP1.I
+04400          LDA CHOP.Y
+04410          STA TEMP2.I
+04420          JSR COMPUTE.MAP.ADR.I
+04430          LDA #0
+04440          STA TEMP3.I
+04450          STA TEMP4.I
+04460          JSR CHECK.LAND
+04470          INC ADR1.I+1
+04480          JSR CHECK.LAND
+04490          INC ADR1.I+1
+04500          JSR CHECK.LAND
+04510          LDA CHOPPER.COL
+04520          AND #%11110000
+04530          BNE .4
+04540          LDA CHOPPER.COL
+04550          AND #%00000010
+04560          BEQ .9
+04570          JSR PICK.UP.SLAVE
+04580          BCC .9
+04590          LDX #PICKUP
+04600          JMP .5
+04610 .9       LDA TEMP3.I
+04620          CMP #3
+04630          BEQ .4
+04640          DEC CHOPPER.Y
+04650          LDX FUEL.STATUS
+04660          LDA CHOP.Y
+04670          CMP #10+4
+04680          BLT .8
+04690          CPX #EMPTY
+04700          BEQ .4
+04710 .8       CPX #REFUEL
+04720          BEQ .7
+04730          LDA TEMP4.I
+04740          BNE .7
+04750          JSR SAVE.POS
+04760 .7       LDX #LAND
+04770          BNE .5      FORCED
+04780 .4       LDA #20
+04790          STA TIM3.VAL
+04800          LDA #1
+04810          STA S3.VAL
+04820          LDX #CRASH
+04830 .5       STX CHOPPER.STATUS
+04840          RTS
+04850 *
+04860 SAVE.POS
+04870          LDA SX.F
+04880          STA LAND.FX
+04890          LDA SY.F
+04900          STA LAND.FY
+04910          LDA SX
+04920          STA LAND.X
+04930          LDA SY
+04940          STA LAND.Y
+04950          LDA CHOPPER.X
+04960          STA LAND.CHOP.X
+04970          LDA CHOPPER.Y
+04980          STA LAND.CHOP.Y
+04990          LDA CHOPPER.ANGLE
+05000          STA LAND.CHOP.ANGLE
+05010          RTS
+05020 *
+05030 CHECK.LAND
+05040          LDY #0
+05050          LDX #LAND.LEN
+05060          LDA (ADR1.I),Y
+05070 .1       CMP LAND.CHR,X
+05080          BEQ .2
+05090          CMP #$48
+05100          BEQ .3
+05110          DEX
+05120          BPL .1
+05130          INC TEMP3.I
+05140 .2       RTS
+05150 .3       INC TEMP4.I
+05160          RTS
+05170 *
+05180 P1       LDX #OFF
+05190          JMP DRCE
+05200 *
+05210 DO.ROBOT.CHOPPER
+05220          LDA R.STATUS
+05230          CMP #OFF
+05240          BEQ P1
+05250          LDA R.X
+05260          CMP SX
+05270          BLT P1
+05280          SEC
+05290          SBC SX
+05300          CMP #48
+05310          BGE P1
+05320          LDY SY
+05330          BPL .1
+05340          LDY #0
+05350 .1       STY TEMP1.I
+05360          LDA R.Y
+05370          CMP TEMP1.I
+05380          BLT P1
+05390          SEC
+05400          SBC SY
+05410          CMP #19
+05420          BGE P1
+05430 *
+05440          LDA R.X
+05450          SEC
+05460          SBC SX
+05470          ASL
+05480          ASL
+05490          CLC
+05500          ADC #22
+05510          STA TEMP1.I
+05520          LDA SX.F
+05530          AND #3
+05540          CLC
+05550          ADC TEMP1.I
+05560          ADC R.FX
+05570          STA ROBOT.X
+05580          LDA R.Y
+05590          LDY SY
+05600          BPL .2
+05610          LDY #0
+05620 .2       STY TEMP1.I
+05630          SEC
+05640          SBC TEMP1.I
+05650          ASL
+05660          ASL
+05670          ASL
+05680          CLC
+05690          ADC #71+12
+05700          STA TEMP1.I
+05710          LDA SY.F
+05720          EOR #$FF
+05730          AND #7
+05740          CLC
+05750          ADC TEMP1.I
+05760          LDY SY
+05770          BPL .3
+05780          CLC
+05790          ADC #8
+05800 .3       CLC
+05810          ADC R.FY
+05820          STA ROBOT.Y
+05830          LDX #FLY
+05840          LDA ROBOT.COL
+05850          BEQ .4
+05860          LDA R.STATUS
+05870          CMP #CRASH
+05880          BEQ .4
+05890          LDX #CRASH
+05900          LDA #20
+05910          STA TIM7.VAL
+05920          LDA #1
+05930          STA S3.VAL
+05940 .4       LDA R.STATUS
+05950          CMP #CRASH
+05960          BEQ .5
+05970          STX R.STATUS
+05980 .5       LDX #ON
+05990 DRCE
+06000          STX ROBOT.STATUS
+06010          RTS
+06020 *
+06030 UPDATE.CHOPPER
+06040          LDA CHOPPER.STATUS
+06050          CMP #BEGIN
+06060          BEQ .20
+06070          CMP #OFF
+06080          BNE .0
+06090          LDA #0
+06100          STA HPOSP0
+06110          STA HPOSP1
+06120          RTS
+06130 .20      LDA #FLY
+06140          STA CHOPPER.STATUS
+06150          JMP CCXY
+06160 *
+06170 .0       LDY OCHOPPER.Y
+06180          LDX #17
+06190          LDA #0
+06200 .1       STA PLAYER+PL0,Y
+06210          STA PLAYER+PL1,Y
+06220          INY
+06230          DEX
+06240          BPL .1
+06250 *
+06260          LDA CHOPPER.X
+06270          STA HPOSP0
+06280          CLC
+06290          ADC #8
+06300          STA HPOSP1
+06310 *
+06320          LDA CHOPPER.ANGLE
+06330          ASL
+06340          TAX
+06350          LDA CHOPPER.SHAPES,X
+06360          STA ADR1.I
+06370          LDA CHOPPER.SHAPES+1,X
+06380          STA ADR1.I+1
+06390 *
+06400          LDA #0
+06410          STA TEMP1.I
+06420          LDA #18
+06430          STA TEMP2.I
+06440 *
+06450          LDX CHOPPER.Y
+06460          STX OCHOPPER.Y
+06470 .2       LDY TEMP1.I
+06480          LDA (ADR1.I),Y
+06490          STA PLAYER+PL0,X
+06500          LDY TEMP2.I
+06510          LDA (ADR1.I),Y
+06520          STA PLAYER+PL1,X
+06530          INC TEMP1.I
+06540          INC TEMP2.I
+06550          INX
+06560          LDA TEMP1.I
+06570          CMP #18
+06580          BNE .2
+06590 *
+06600          LDA CHOPPER.STATUS
+06610          CMP #CRASH
+06620          BNE .11
+06630          LDX CHOPPER.Y
+06640          LDY #18
+06650 .10      LDA PLAYER+PL0,X
+06660          AND RANDOM
+06670          STA PLAYER+PL0,X
+06680          LDA PLAYER+PL1,X
+06690          AND RANDOM
+06700          STA PLAYER+PL1,X
+06710          INX
+06720          DEY
+06730          BNE .10
+06740          INC PCOLR0
+06750          INC PCOLR1
+06760          LDA RANDOM
+06770          ORA #$F
+06780          STA BAK2.COLOR
+06790          LDA MODE
+06800          CMP #GO.MODE
+06810          BNE .11
+06820          LDA FRAME
+06830          AND #1
+06840          BNE .12
+06850          INC CHOPPER.Y
+06860 .12      DEC TIM3.VAL
+06870          BNE .11
+06880          LDA R.STATUS
+06890          CMP #OFF
+06900          BEQ .23
+06910          JSR POS.ROBOT
+06920          LDA #OFF
+06930          STA R.STATUS
+06940 .23      JSR POS.CHOPPER
+06950 *
+06960          LDA #NEW.PLAYER.MODE
+06970          STA MODE
+06980 *
+06990 .11
+07000          LDA FRAME
+07010          AND #3
+07020          BNE .3
+07030          LDA CHOPPER.ANGLE
+07040          EOR #1
+07050          STA CHOPPER.ANGLE
+07060 *
+07070 .3
+07080          LDA MODE
+07090          CMP #GO.MODE
+07100          BNE CCEND
+07110          JSR POS.CHOPPER
+07120 CCXY
+07130          LDA CHOPPER.X
+07140          SEC
+07150          SBC #24
+07160          LSR
+07170          LSR
+07180          CLC
+07190          ADC SX
+07200          STA CHOP.X
+07210          LDA CHOPPER.Y
+07220          SEC
+07230          SBC #76+12
+07240          LSR
+07250          LSR
+07260          LSR
+07270          STA TEMP1.I
+07280          LDA SY
+07290          BPL .1
+07300          LDA #0
+07310 .1       CLC
+07320          ADC TEMP1.I
+07330          STA CHOP.Y
+07340 *
+07350          JMP POS.CHOPPER
+07360 CCEND    RTS
+07370 *
+07380 UPDATE.ROBOT.CHOPPER
+07390          LDA ROBOT.STATUS
+07400          CMP #OFF
+07410          BNE .0
+07420          LDA #0
+07430          STA ROBOT.X
+07440          STA ROBOT.Y
+07450 ;        RTS
+07460 *
+07470 .0       LDY OROBOT.Y
+07480          LDX #17
+07490          LDA #0
+07500 .1       STA PLAYER+PL2,Y
+07510          STA PLAYER+PL3,Y
+07520          INY
+07530          DEX
+07540          BPL .1
+07550 *
+07560          LDA ROBOT.ANGLE
+07570          ASL
+07580          TAX
+07590          LDA CHOPPER.SHAPES,X
+07600          STA ADR1.I
+07610          LDA CHOPPER.SHAPES+1,X
+07620          STA ADR1.I+1
+07630 *
+07640          LDA #0
+07650          STA TEMP1.I
+07660          LDA #18
+07670          STA TEMP2.I
+07680 *
+07690          LDX ROBOT.Y
+07700          STX OROBOT.Y
+07710 .2       LDY TEMP1.I
+07720          LDA (ADR1.I),Y
+07730          STA PLAYER+PL2,X
+07740          LDY TEMP2.I
+07750          LDA (ADR1.I),Y
+07760          STA PLAYER+PL3,X
+07770          INC TEMP1.I
+07780          INC TEMP2.I
+07790          INX
+07800          LDA TEMP1.I
+07810          CMP #18
+07820          BNE .2
+07830 *
+07840          LDA R.STATUS
+07850          CMP #CRASH
+07860          BNE .12
+07870          LDX ROBOT.Y
+07880          LDY #18
+07890 .10      LDA PLAYER+PL2,X
+07900          AND RANDOM
+07910          STA PLAYER+PL2,X
+07920          LDA PLAYER+PL3,X
+07930          AND RANDOM
+07940          STA PLAYER+PL3,X
+07950          INX
+07960          DEY
+07970          BNE .10
+07980          INC PCOLR2
+07990          INC PCOLR3
+08000          DEC TIM7.VAL
+08010          BNE .12
+08020          LDA #OFF
+08030          STA R.STATUS
+08040          JSR POS.ROBOT
+08050          LDA #255
+08060          STA TIM7.VAL
+08070 .12
+08080 *
+08090          LDA FRAME
+08100          AND #3
+08110          BNE .3
+08120          LDA ROBOT.ANGLE
+08130          EOR #1
+08140          STA ROBOT.ANGLE
+08150 *
+08160 .3       RTS
+08170 *
+08180 UPDATE.ROCKETS
+08190 *
+08200 CHECK.ROCKET.COL
+08210          LDX #2
+08220 NXT.RCK  LDA ROCKET.STATUS,X
+08230 ;        CMP #0
+08240          BNE .23
+08250 .9       JMP .6
+08260 .23      CMP #7
+08270          BEQ .9
+08280          LDA ROCKET.X,X
+08290          SEC
+08300          SBC #32+1
+08310          LSR
+08320          LSR
+08330          CLC
+08340          ADC SX
+08350          STA TEMP1.I
+08360          STA ROCKET.TEMPX,X
+08370          LDA #0
+08380          LDY SY
+08390          BMI .0
+08400          LDA SY.F
+08410          AND #7
+08420 .0       CLC
+08430          ADC ROCKET.Y,X
+08440          SEC
+08450          SBC #82+12
+08460          LSR
+08470          LSR
+08480          LSR
+08490          STA TEMP2.I
+08500          LDA SY
+08510          BPL .1
+08520          LDA #0
+08530 .1       CLC
+08540          ADC TEMP2.I
+08550          STA TEMP2.I
+08560          STA ROCKET.TEMPY,X
+08570          JSR CHECK.CHR.I
+08580          BCC .6
+08590          LDY #1
+08600          STY S3.VAL
+08610          DEY         Y=0
+08620          STY S2.VAL
+08630          LDA (ADR1.I),Y
+08640          STA ROCKET.TEMP,X
+08650          CMP #EXP2
+08660          BNE .4
+08670          LDY LEVEL
+08680          DEY
+08690          BNE .4
+08700          STY ROCKET.TEMP+0
+08710          STY ROCKET.TEMP+1
+08720          STY ROCKET.TEMP+2
+08730          LDA #EXPLODE
+08740          STA FORT.STATUS
+08750          BNE .3      FORCED
+08760 .4       CMP #EXP.WALL
+08770          BNE .10
+08780          STX TEMP1.I
+08790          LDA #$10
+08800          STA BAK2.COLOR
+08810          LDX #$20
+08820          LDY #$00
+08830          JSR INC.SCORE
+08840          LDX TEMP1.I
+08850          LDA #0
+08860          STA ROCKET.TEMP,X
+08870          BEQ .21     FORCED
+08880 .10      LDY #HIT.LIST.LEN
+08890 .2       CMP HIT.LIST,Y
+08900          BEQ .3
+08910          DEY
+08920          BPL .2
+08930 .21      LDA #7
+08940          BNE .5      FORCED
+08950 .3       LDA #0
+08960 .5       STA ROCKET.STATUS,X
+08970          LDY #0
+08980          LDA #EXP
+08990          STA (ADR1.I),Y
+09000          LDA #7
+09010          STA ROCKET.TIM,X
+09020 .6
+09030 *
+09040 MOVE.ROCKETS
+09050          LDA ROCKET.STATUS,X
+09060 ;        CMP #0      OFF
+09070          BEQ .2
+09080          CMP #7      EXP
+09090          BEQ .3
+09100          LDA SSIZEM
+09110          STA SIZEM
+09120          LDA ROCKET.X,X
+09130          CMP #0+4
+09140          BLT .2
+09150          CMP #255-4
+09160          BGE .2
+09170          LDA ROCKET.Y,X
+09180          CMP #MAX.DOWN+18
+09190          BGE .2
+09200          CMP #MAX.UP
+09210          BGE .5
+09220 .2       LDA #0      OFF
+09230          STA ROCKET.STATUS,X
+09240 .3       LDA #0
+09250          STA ROCKET.X,X
+09260          LDA #$F0
+09270          STA ROCKET.Y,X
+09280 .5       LDY OROCKET.Y,X
+09290          LDA PLAYER+MIS+0,Y
+09300          AND ROCKET1.MASK,X
+09310          STA PLAYER+MIS+0,Y
+09320          LDA PLAYER+MIS+1,Y
+09330          AND ROCKET1.MASK,X
+09340          STA PLAYER+MIS+1,Y
+09350          LDA PLAYER+MIS+4,Y
+09360          AND ROCKET1.MASK,X
+09370          STA PLAYER+MIS+4,Y
+09380          LDA PLAYER+MIS+5,Y
+09390          AND ROCKET1.MASK,X
+09400          STA PLAYER+MIS+5,Y
+09410          LDA ROCKET.Y,X
+09420          STA OROCKET.Y,X
+09430          TAY
+09440          LDA ROCKET2.MASK,X
+09450          PHA
+09460          ORA PLAYER+MIS+0,Y
+09470          STA PLAYER+MIS+0,Y
+09480          PLA
+09490          ORA PLAYER+MIS+1,Y
+09500          STA PLAYER+MIS+1,Y
+09510          LDA SSIZEM
+09520          AND ROCKET1.MASK,X
+09530          STA SSIZEM
+09540          LDA ROCKET.STATUS,X
+09550          CMP #3
+09560          BEQ .10
+09570          LDA SSIZEM
+09580          ORA ROCKET3.MASK,X
+09590          STA SSIZEM
+09600          LDA ROCKET2.MASK,X
+09610          PHA
+09620          ORA PLAYER+MIS+4,Y
+09630          STA PLAYER+MIS+4,Y
+09640          PLA
+09650          ORA PLAYER+MIS+5,Y
+09660          STA PLAYER+MIS+5,Y
+09670 .10      LDY ROCKET.STATUS,X
+09680 ;        CPY #0      OFF
+09690          BEQ .4
+09700          CPY #7      EXP
+09710          BEQ .4
+09720          LDA ROCKET.X,X
+09730          CLC
+09740          ADC ROCKET.DX-1,Y
+09750          STA ROCKET.X,X
+09760          LDA ROCKET.Y,X
+09770          CLC
+09780          ADC ROCKET.DY-1,Y
+09790          STA ROCKET.Y,X
+09800 .4       DEX
+09810          BMI ROCKET.EXP
+09820          JMP NXT.RCK
+09830 *
+09840 ROCKET.EXP
+09850          LDX #2
+09860 .1       LDA ROCKET.STATUS,X
+09870          CMP #7      EXP
+09880          BNE .2
+09890          DEC ROCKET.TIM,X
+09900          BNE .2
+09910          LDA ROCKET.TEMPX,X
+09920          STA TEMP1.I
+09930          LDA ROCKET.TEMPY,X
+09940          STA TEMP2.I
+09950          LDA #0
+09960          STA BAK2.COLOR
+09970          JSR COMPUTE.MAP.ADR.I
+09980          LDA ROCKET.TEMP,X
+09990          CMP #EXP
+10000          BEQ .4
+10010          LDY #HIT.LIST.LEN
+10020 .0       CMP HIT.LIST,Y
+10030          BEQ .4
+10040          DEY
+10050          BPL .0
+10060          INY         Y=0
+10070          STA (ADR1.I),Y
+10080 .4       LDA #0      OFF
+10090          STA ROCKET.STATUS,X
+10100 .2       DEX
+10110          BPL .1
+10120 .3       RTS
+10130 *
+10140 HIT.LIST
+10150  .HS 405B5C5D5E5F
+10160  .HS 3B3C3D3E494A
+10170 TANK.SHAPE
+10180  .AT -/lmnop/
+10190  .DA #MISS.LEFT,#MISS.RIGHT
+10200 HIT.LIST.LEN .EQ *-HIT.LIST-1
+10210  .AT /a /
+10220  .DA #EXP
+10230 HIT.LIST2.LEN .EQ *-HIT.LIST-1
+10240 *
+10250 ROCKET.DX
+10260  .DA #-4,#-4,#0,#4,#4
+10270 ROCKET.DY
+10280  .DA #2,#0,#2,#0,#2
+10290 *
+10300 ROCKET1.MASK
+10310  .DA #%11111100
+10320  .DA #%11110011
+10330  .DA #%11001111
+10340 ;.DA #%00111111
+10350 ROCKET2.MASK
+10360  .DA #%00000011
+10370  .DA #%00001100
+10380  .DA #%00110000
+10390 ;.DA #%11000000
+10400 ROCKET3.MASK
+10410  .DA #%00000001
+10420  .DA #%00000100
+10430  .DA #%00010000
+10440 ;.DA #%01000000
+10450 *
+10460 * EOF
+10470 *
