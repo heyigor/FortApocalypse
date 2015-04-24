@@ -3,6 +3,8 @@ The original Atari 400/800 6502 assembly code for the classic game Fort Apocalyp
 
 This is mainly being released for historical reasons. This requires a copy of SynAssembler to assemble.
 
+![Fort Apocalypse](images/FortApocalypse.gif)
+
 ## Notes
 
 ###Files:
