@@ -257,16 +257,15 @@
 02560 * INSIDE INCLUDE FILES
 02570 *
 02580 *
-02581          .IN "H1:FNT1.S"
-02582          .IN "H1:FNT2.S"
-02583 *
-02590          .IN "H1:FORT1.S"
-02600          .IN "H1:FORT2.S"
-02610          .IN "H1:FORT3.S"
-02620          .IN "H1:FORT4.S"
-02630          .IN "H1:FORT5.S"
-02640          .IN "H1:FORT6.S"
-02650          .IN "H1:FORT8.S"
+02590          .IN "H1:FORT8.S"
+02600          .IN "H1:FORT6.S"
+02610          .IN "H1:FORT2.S"
+02620          .IN "H1:FNT2.S"
+02630          .IN "H1:FORT3.S"
+02640          .IN "H1:FORT1.S"
+02650          .IN "H1:FORT4.S"
+02660          .IN "H1:FNT1.S"
+02670          .IN "H1:FORT5.S"
 02680 *
 02690 END.CART
 02700          .BS $BFFA-*
